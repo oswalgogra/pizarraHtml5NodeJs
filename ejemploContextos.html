@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pizarra con dos contextos</title>
+    <link rel="stylesheet" type="text/css" href="EstiloT0404.css" />
+    <script src="js/jquery.js"></script>
+	<script src="js/underscore-min.js"></script>
+    <script>
+		var contextos = [];
+		var numContexto = 1;
+        $(document).ready(function(){
+			var	mensajes = $("#capa_mensajes");
+			var miColor = "red";
+
+			// comportamiento del canvas
+					
+            var clic=false;
+            var xCoord,yCoord="";
+            canvas=document.getElementById("can");
+            contextos[0] = canvas.getContext("2d");
+
+            contextos[0].strokeStyle="red";
+            contextos[0].lineWidth=10;
+            contextos[0].lineCap="round";
+            contextos[0].fillStyle="#fff";
+            contextos[0].fillRect(0,0,canvas.width,canvas.height);
+
+            contextos[1] = contextos[0];
+
+
+            $("#color1, #color2").bind("change",function(evento){
+console.log($(this).val());
+            });
+
+			$("#btn_contexto1, #btn_contexto2").bind("click",function(evento){
+				var numero  = $(this).attr("id").replace("btn_contexto","");
+				numContexto = $(this).attr("id").replace("btn_contexto","");
+				contextos[numero-1].strokeStyle = $("#color"+numero).val();
+			});
+
+
+			$("#can").mousedown(function(canvas){
+                clic=true;
+                contextos[numContexto-1].save();
+                xCoord=canvas.pageX-this.offsetLeft;
+                yCoord=canvas.pageY-this.offsetTop;
+            });
+
+            $(document).mouseup(function(){
+                clic=false
+            });
+
+            $(document).click(function(){
+                clic=false
+            });
+
+            $("#can").mousemove(function(canvas){
+				if(clic==true){
+					contextos[numContexto-1].beginPath();
+					contextos[numContexto-1].moveTo(canvas.pageX-this.offsetLeft,canvas.pageY-this.offsetTop);
+					contextos[numContexto-1].lineTo(xCoord,yCoord);
+					contextos[numContexto-1].stroke();
+					contextos[numContexto-1].closePath();
+					xCoord=canvas.pageX-this.offsetLeft;
+					yCoord=canvas.pageY-this.offsetTop
+				}
+            });
+
+            $("#clr > div").click(function(){
+                contextos[numContexto-1].strokeStyle = $(this).css("background-color");
+				miColor = cntx.strokeStyle;
+            });
+
+            $("#borrador").click(function(){
+                contextos[numContexto-1].strokeStyle="#fff"
+            });
+            
+            
+            $("#limpiar").click(function(){
+                contextos[numContexto-1].fillStyle="#fff";
+                contextos[numContexto-1].fillRect(0,0,canvas.width, canvas.height);
+                contextos[numContexto-1].strokeStyle="red";
+                contextos[numContexto-1].fillStyle="red"
+            });
+			
+        });
+
+        function dibujarContexto(contexto,x,y){
+console.log(contexto);
+console.log(x+","+y);
+            contexto.save();
+            xCoord = x-canvas.offsetLeft;
+            yCoord = y-canvas.offsetTop;
+
+
+			contexto.beginPath();
+			contexto.moveTo(x-canvas.offsetLeft,y-canvas.offsetTop);
+			contexto.lineTo(xCoord,yCoord);
+			contexto.stroke();
+			contexto.closePath();
+        }
+
+    </script> 
+	<style>
+		#capa_mensajes {
+			max-height: 300px;
+			overflow: scroll;
+		}
+
+	</style>
+</head>
+<body>
+	<h1>Pizarra con dos contextos</h1>
+	<br/>
+	<p>
+		<label for="color1">Color 1:</label>
+		<select name="color1" id="color1" >
+			<option value="red">Rojo</option>
+			<option value="blue">Azul</option>
+			<option value="yellow">Amarillo</option>
+			<option value="black">Negro</option>
+			<option value="pink">Rosado</option>
+			<option value="orange">Naranja</option>
+			<option value="brown">Cafe</option>
+		</select> <input type="button" id="btn_contexto1" value="Contexto 1" /><br/>
+
+		<label for="color2">Color 2:</label>
+		<select name="color2" id="color2" >
+			<option value="red">Rojo</option>
+			<option value="blue">Azul</option>
+			<option value="yellow">Amarillo</option>
+			<option value="black">Negro</option>
+			<option value="pink">Rosado</option>
+			<option value="orange">Naranja</option>
+			<option value="brown">Cafe</option>
+		</select> <input type="button" id="btn_contexto2" value="Contexto 2" /><br/>
+		<br/>
+		<span id="span_contexto"></span>
+	</p>
+	<div id="capa_mensajes"></div>
+	<br/>
+    <canvas id="can" width="500" height="300" ></canvas>
+    <div id="clr"> 
+        <div style="background-color:black;"></div>
+        <div style="background-color:red;"></div>
+        <div style="background-color:green;"></div>
+        <div style="background-color:orange;"></div>
+        <div style="background-color:#FFFF00;"></div>
+        <div style="background-color:#F43059;"></div>
+        <div style="background-color:#ff00ff;"></div>
+        <div style="background-color:#9ecc3b;"></div>
+        <div style="background-color:#fbd;"></div>
+        <div style="background-color:#fff460;"></div>
+        <div style="background-color:#F43059;"></div>
+        <div style="background-color:#82B82C;"></div>
+        <div style="background-color:#0099FF;"></div>
+        <div style="background-color:#ff00ff;"></div>
+        <div style="background-color:rgb(128,0,255);"></div>
+        <div style="background-color:rgb(255,128,0);"></div>
+        <div style="background-color:rgb(153,254,0);"></div>
+        <div style="background-color:rgb(18,0,255);"></div>
+        <div style="background-color:rgb(255,28,0);"></div>
+        <div style="background-color:rgb(13,54,0);"></div> 
+    </div> 
+    <a id="limpiar" href="#">Limpiar</a> 
+    <a id="borrador" href="#">Borrador</a> 
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dibujar con JQuery &amp; Canvas</title>
+    <link rel="stylesheet" type="text/css" href="EstiloT0404.css" />
+    <script src="js/jquery.js"></script>
+	<script src="js/underscore-min.js"></script>
+	<script type="text/javascript" src="http://10.10.1.104:8089/socket.io/socket.io.js"></script>
+    <script>
+		var usuarios = [];
+		var miColor = "red";
+        $(document).ready(function(){
+			var	mensajes = $("#capa_mensajes");
+			socket = io.connect('http://10.10.1.104:8089');
+			// Eventos del socket
+			socket.on('connect', function(){
+				mensajes.innerHTML = 'Conectado';
+			});
+			
+			socket.on("sesion iniciada",function(datos){
+				if(datos.mensaje != 'ok')
+					alert("Hubo problemas al iniciar la sesion.");
+				else{
+					$("#usuario").attr("disabled",true);
+					$("#btn_conectar_chat").attr("disabled",true);
+					$("#btn_desconectar_chat").attr("disabled",false);
+					$(mensajes).append('<br/>Has ingresado al chat.');
+					agregaNuevoUsuario(datos.usuario);
+				}
+			});
+			
+			socket.on("username ocupado",function(datos){
+				alert(datos.mensaje);
+				$("#usuario").val("");
+			});
+			
+			socket.on('nuevo usuario',function(mensaje){
+				var fecha = new Date();
+				var strFecha = fecha.getDate() +"/"+ parseInt(fecha.getMonth()+1) +"/"+ fecha.getFullYear() + " Hora: "+ fecha.getHours() +":"+ fecha.getMinutes();
+				mensajes.html(mensajes.html() + '<br>'+ strFecha +'<br/><strong>'+ mensaje.mensaje);
+				agregaNuevoUsuario(mensaje.usuario);
+			});
+
+			socket.on("cambia posicion usuario",function(datos){
+				usu = datos.usuario;
+				color = datos.color;
+				x = datos.x;
+				y = datos.y;
+				dibujar(usu,x,y,color);
+			});
+
+			socket.on("cambia color usuario",function(datos){
+				usu = datos.usuario;
+				color = datos.color;
+				cambiaColorUsuario(usu,color);
+			});
+
+			socket.on("limpiar",function(datos){
+				cntx.fillStyle="#fff";
+                cntx.fillRect(0,0,canvas.width, canvas.height);
+				
+				cambiaColorUsuario(datos.usuario,"#fff");
+                return false;
+			});
+			
+			
+			// comportamiento del canvas
+			
+		
+            var clic=false;
+            var xCoord,yCoord="";
+            canvas=document.getElementById("can");
+            var cntx=canvas.getContext("2d");
+            cntx.strokeStyle="red";
+            cntx.lineWidth=3;
+            cntx.lineCap="round";
+            cntx.fillStyle="#fff";
+            cntx.fillRect(0,0,canvas.width,canvas.height);
+
+			$("#can").mousedown(function(canvas){
+                clic=true;
+                cntx.save();
+                xCoord=canvas.pageX-this.offsetLeft;
+                yCoord=canvas.pageY-this.offsetTop;
+            });
+
+            $(document).mouseup(function(){
+                clic=false
+            });
+
+            $(document).click(function(){
+                clic=false
+            });
+
+            $("#can").mousemove(function(canvas){
+				var usuario = $("#usuario").val();
+				if(usuario != ''){
+					if(clic==true){
+						cntx.beginPath();
+						cntx.moveTo(canvas.pageX-this.offsetLeft,canvas.pageY-this.offsetTop);
+						cntx.lineTo(xCoord,yCoord);
+						cntx.stroke();
+						cntx.closePath();
+						xCoord=canvas.pageX-this.offsetLeft;
+						yCoord=canvas.pageY-this.offsetTop
+						enviarParametros(usuario,xCoord,yCoord,miColor);
+					}
+				}
+            });
+
+            $("#clr > div").click(function(){
+				/*$.each($("#clr > div"),function(c,elemento){
+					var colorCapa = $(elemento).css("background-color");
+					$(elemento).css("border", colorCapa+" solid 1px");
+				});
+				$(this).css("border","gray solid 3px");*/
+                cntx.strokeStyle = $(this).css("background-color");
+				miColor = $(this).css("background-color");
+				usu = $("#usuario").val();
+				cambiaColor(usu,miColor);
+            });
+
+            $("#borrador").click(function(){
+                cntx.strokeStyle="#fff"
+				usuario = $("#usuario").val();
+				cambiaColor(usuario,"#fff");
+            });
+            
+            
+            $("#limpiar").click(function(){
+				cntx.fillStyle="#fff";
+				cntx.fillRect(0,0,canvas.width, canvas.height);
+				cntx.strokeStyle="red";
+				cntx.fillStyle="red"
+				socket.emit("limpiar",{"usuario": $("#usuario").val()});
+				return false;
+            });
+			
+			$("#btn_conectar_chat").bind("click",function(){
+				var usuario = $("#usuario").val();
+				if(usuario!=''){
+					conectarseAlChat(usuario);
+				}else{
+					alert("Digite un usuario");
+				}
+			});
+			
+        });
+		
+		function cambiaColor(u,color){
+			socket.emit('cambia mi color',{'usuario': u, 'color': color});
+		}
+		
+		function enviarParametros(u,x,y,color){
+			socket.emit('cambia mi posicion',{'usuario': u, 'x': x, 'y': y, 'color': color});
+		}
+		
+		function conectarseAlChat(u){
+			socket.emit('ingresar usuario',{'usuario': u});
+		}
+		
+		function agregaNuevoUsuario(usuario){
+			var cntxU = canvas.getContext("2d");
+            cntxU.strokeStyle="red";
+            cntxU.lineWidth=1;
+            cntxU.lineCap="round";
+            cntxU.fillStyle="#fff";
+			var arrTmp = {'usuario': usuario, 'color': 'red', 'x': 0, 'y': 0, 'contexto': cntxU};
+			usuarios[usuarios.length] = arrTmp; 
+		}
+
+		function cambiaColorUsuario(usu,color){
+console.log("color para "+usu+": "+ color);
+console.log(usuarios);
+			$.each(usuarios,function(c,user){
+				if(user.usuario == usu){
+					var can = document.getElementById("can");
+					var contextoTmp = can.getContext("2d");
+					usuarios[c].contexto.beginPath();
+					usuarios[c].contexto.strokeStyle = color;
+					usuarios[c].contexto.lineCap = "round";
+					usuarios[c].contexto.lineWidth = 3;
+					//usuarios[c].contexto = contextoTmp;
+					usuarios[c].color = color;
+	console.log("Cont: "+c);
+				}
+			});
+		}
+
+		function dibujar(usu,x,y,color){
+			$.each(usuarios,function(c,user){
+				if(user.usuario == usu){
+					x = parseInt(x);
+					y = parseInt(y);
+					var can = document.getElementById("can");
+					// inicio de la ruta a dibujar
+					usuarios[c].contexto.beginPath();
+					//usuarios[c].contexto.strokeStyle = color;
+					usuarios[c].contexto.lineCap = "round";
+					usuarios[c].contexto.lineWidth = 3;
+					usuarios[c].contexto.moveTo(x,y);
+					//usuarios[c].contexto.lineTo(x-can.offsetLeft,y-can.offsetTop);
+					usuarios[c].contexto.lineTo(x+0.5,y+0.5);
+
+					// pintar un circulo
+					//usuarios[c].contexto.arc(x,y,1,0,2*Math.PI);
+					
+					// dibujar trazos
+					usuarios[c].contexto.stroke();
+					
+					// guardar estado del contexto
+					//usuarios[c].contexto.save();
+
+				}
+			});
+		}
+    </script> 
+	<style>
+		#capa_mensajes {
+			max-height: 300px;
+			overflow: scroll;
+		}
+
+		#capa_lista_usuarios {
+			max-height: 400px;
+			width: 200px;
+			overflow: scroll;
+			border: green solid 1px;
+			float:right;
+			position:relative;
+		}
+		
+	</style>
+</head>
+<body>
+	<h1>Pizarra compartida</h1>
+    <canvas id="can" width="800" height="500" ></canvas>
+	<div id="barra_derecha" style="border: blue solid 1px; float:right; position:relative; width:390px">
+		<h4>Mensajes</h4>
+		<div id="capa_usuarios" >
+			Usuarios conectados: <span id="num_usu_conectados">Ninguno</span>
+			<ul id="lista_usuarios">
+				
+			</ul>
+		</div>
+		<div id="capa_mensajes" ></div>
+		<textarea id="texto" name="texto" cols="45" rows="6"></textarea>
+		<input type="button" id="btn_enviar" value="Enviar" />
+	</div>
+	
+    <div id="clr"> 
+        <div style="background-color:black;"></div>
+        <div style="background-color:red;"></div>
+        <div style="background-color:green;"></div>
+        <div style="background-color:orange;"></div>
+        <div style="background-color:#FFFF00;"></div>
+        <div style="background-color:#F43059;"></div>
+        <div style="background-color:#ff00ff;"></div>
+        <div style="background-color:#9ecc3b;"></div>
+        <div style="background-color:#fbd;"></div>
+        <div style="background-color:#fff460;"></div>
+        <div style="background-color:#F43059;"></div>
+        <div style="background-color:#82B82C;"></div>
+        <div style="background-color:#0099FF;"></div>
+        <div style="background-color:#ff00ff;"></div>
+        <div style="background-color:rgb(128,0,255);"></div>
+        <div style="background-color:rgb(255,128,0);"></div>
+        <div style="background-color:rgb(153,254,0);"></div>
+        <div style="background-color:rgb(18,0,255);"></div>
+        <div style="background-color:rgb(255,28,0);"></div>
+        <div style="background-color:rgb(13,54,0);"></div> 
+    </div> 
+    <a id="limpiar" href="#">Limpiar</a> 
+    <a id="borrador" href="#">Borrador</a> 
+    <br/>
+	<p>
+		<label for="usuario">Usuario: </label> <input type="text" id="usuario" name="usuario" />
+		<input type="button" id="btn_conectar_chat" value="Conectarse" /> <input type="button" id="btn_desconectar_chat" value="Desconectarse" disabled="disabled" /><br/>
+	</p>
+</body>
+</html>
