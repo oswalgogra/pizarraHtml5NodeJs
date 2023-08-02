@@ -1,16 +1,22 @@
-//var express = require('express');
-//var app = express();
-//var fs = require('fs'); 
-var io = require('socket.io').listen(8089);
-var _un = require('underscore'); // para minimizar el trabajo
+const _un = require('underscore'); // para minimizar el trabajo
+const fs = require('fs');
+const express = require('express');
+const { createServer } = require("http");
+const { Server } = require("socket.io");
+
+const puertoSocket = 8089;
+const puertoApp = 3000;
+const publicDir = "";
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, { /* options */ });
+
 var usuariosConectados = [];
 var socketsClientes = [];
-//var publicDir = "www/";
 
-io.sockets.on('connection', function(socket){
+io.on('connection',(socket) => {
 	socket.set("usuario","");
 	socketsClientes[socket.id] = socket;
-	
 	socket.broadcast.emit('datos chat',{'numConectados': usuariosConectados.length, 'usuarios': usuariosConectados});
 	
 	// un usuario solicita conectarse
@@ -101,7 +107,10 @@ io.sockets.on('connection', function(socket){
 	};
 });
 
-/*app.get('/', function(req, res) {
+console.log("Socket escuchando por el puerto "+ puertoSocket);
+io.listen(puertoSocket);
+
+app.get('/', function(req, res) {
 	path = publicDir + "login.html";
 	var pagina = fs.readFileSync(path); // readFileSync lee algo desde el disco duro
 	res.writeHead(200,{"Content-Type":"text/html"});
@@ -116,6 +125,22 @@ app.get('/chat/', function(req, res) {
 	res.writeHead(200,{"Content-Type":"text/html"});
 	res.write(pagina);
 	res.end();
-});*/
+});
 
-//app.listen(process.env.VCAP_APP_PORT || 3000);
+app.post('/login',express.urlencoded({ extended: true }) , (req, res) => {
+	var username = req.body.username;
+	var pass = req.body.pass;
+	if(username != "" && pass != ""){
+		// registrar al usuario
+
+	}else{
+		// error credenciales
+	}
+	console.log("inicio de sesión");
+	res.end();
+});
+
+
+app.listen(puertoApp, () => {
+	console.log(`Example app listening on port ${puertoApp}`)
+});
